@@ -66,7 +66,7 @@ class RestrictedBoltzmannMachine():
         return
 
         
-    def cd1(self,visible_trainset, n_iterations=10000):
+    def cd1(self, visible_trainset, n_iterations=10000):
         
         """Contrastive Divergence with k=1 full alternating Gibbs sampling
 
@@ -78,23 +78,35 @@ class RestrictedBoltzmannMachine():
         print ("learning CD1")
         
         n_samples = visible_trainset.shape[0]
+        n_mini_batches = n_samples//self.batch_size
 
         for it in range(n_iterations):
-            idx_mini_batch = np.random_integers(low=0, high=n_samples-1, size=self.batch_size)
-	        
-            visible_trainset = visible_trainset[idx_mini_batch]
             
-            # [TODO TASK 4.1] run k=1 alternating Gibbs sampling : v_0 -> h_0 ->  v_1 -> h_1.
-            # you may need to use the inference functions 'get_h_given_v' and 'get_v_given_h'.
-            # note that inference methods returns both probabilities and activations (samples from probablities) and you may have to decide when to use what.
-            v_0 = visible_trainset
-            _, h_0 = get_h_given_v(v_0)
-            _, v_1 = get_v_given_h(h_0)
-            _, h_1 = get_h_given_v(v_1)
+            idx_samples = np.arange(n_samples)
+            np.random.shuffle(idx_samples)
 
+            for i_mini_batch in range(n_mini_batches):
+                low_limit_idx_mini_batch = i_mini_batch*self.batch_size
+                up_limit_idx_mini_batch = (i_mini_batch+1)*self.batch_size
+                idx_mini_batch = idx_samples[low_limit_idx_mini_batch:up_limit_idx_mini_batch]
+                visible_trainset_mini_batch = visible_trainset[idx_mini_batch]
+                
+                # [TODO TASK 4.1] run k=1 alternating Gibbs sampling : v_0 -> h_0 ->  v_1 -> h_1.
+                # you may need to use the inference functions 'get_h_given_v' and 'get_v_given_h'.
+                # note that inference methods returns both probabilities and activations (samples from probablities) and you may have to decide when to use what.
+                v_0 = visible_trainset_mini_batch
+                _, h_0 = self.get_h_given_v(v_0)
+                v_1, _ = self.get_v_given_h(h_0)
+                # _, h_1 = get_h_given_v(v_1)
+                h_1 = h_0.copy()  # Because we just have one step of gibbs sampling
 
-            self.update_params(v_0,h_0,v_1,h_1)
-            
+                v_0_averaged = np.mean(v_0, axis=0)
+                h_0_averaged = np.mean(h_0, axis=0)
+                v_1_averaged = np.mean(v_1, axis=0)
+                h_1_averaged = np.mean(h_1, axis=0)
+                
+                self.update_params(v_0_averaged,h_0_averaged,v_1_averaged,h_1_averaged)
+                
             # visualize once in a while when visible layer is input images
             
             if it % self.rf["period"] == 0 and self.is_bottom:
@@ -126,24 +138,18 @@ class RestrictedBoltzmannMachine():
 
         # [TODO TASK 4.1] get the gradients from the arguments (replace the 0s below) and update the weight and bias parameters
         
-        n_samples = v_0.shape[0]
+                
+        ###### Calculation of delta_weight_vh
+        prod_initial_v_h = np.outer(v_0, h_0)
+        prod_hat_v_h = np.outer(v_k, h_k)
         
-        summed_diff_t_0_k = np.zeros((self.ndim_visible,self.ndim_hidden))
-        
-        for idx_training_sample in range(n_samples):
-            ###### Calculation of delta_weight_vh
-            term_t_0 = np.outer(v_0[idx_training_sample], h_0[idx_training_sample])
-            term_t_k = np.outer(v_0[idx_training_sample], h_0[idx_training_sample])
-            diff_t_0_k = term_t_0 - term_t_k
-            summed_diff_t_0_k += diff_t_0_k
-        
-        current_delta_weight_vh = summed_diff_t_0_k/n_samples
+        current_delta_weight_vh = prod_initial_v_h - prod_hat_v_h 
         
         ###### Calculation of visible bias
-        current_delta_bias_v = np.sum(v_0 - v_k, axis = 1) # We sum all the rows
+        current_delta_bias_v = v_0 - v_k  
 
         ###### Calculation of hidden bias
-        current_delta_bias_h = np.sum(h_0 - h_k, axis = 1) # We sum all the rows
+        current_delta_bias_h = h_0 - h_k 
         
         if add_weight_decay:
             current_delta_weight_vh = self.learning_rate * current_delta_weight_vh
@@ -230,10 +236,10 @@ class RestrictedBoltzmannMachine():
             pass
             
         else:                        
-            
+            inside_term = self.bias_v + hidden_minibatch @ np.transpose(self.weight_vh)
             prob_v_given_h = sigmoid(inside_term)
             
-            v = sample_binary(prob_h_given_v)
+            v = sample_binary(prob_v_given_h)
             
         
         return prob_v_given_h, v
