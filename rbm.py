@@ -79,6 +79,7 @@ class RestrictedBoltzmannMachine():
         
         n_samples = visible_trainset.shape[0]
         n_mini_batches = n_samples//self.batch_size
+        iteration_errors = []
 
         for it in range(n_iterations):
             
@@ -86,6 +87,7 @@ class RestrictedBoltzmannMachine():
             np.random.shuffle(idx_samples)
 
             for i_mini_batch in range(n_mini_batches):
+                
                 low_limit_idx_mini_batch = i_mini_batch*self.batch_size
                 up_limit_idx_mini_batch = (i_mini_batch+1)*self.batch_size
                 idx_mini_batch = idx_samples[low_limit_idx_mini_batch:up_limit_idx_mini_batch]
@@ -96,21 +98,22 @@ class RestrictedBoltzmannMachine():
                 # note that inference methods returns both probabilities and activations (samples from probablities) and you may have to decide when to use what.
                 v_0 = visible_trainset_mini_batch
                 _, h_0 = self.get_h_given_v(v_0)
-                v_1, _ = self.get_v_given_h(h_0)
+                v_1, prob_v_1 = self.get_v_given_h(h_0)
+                _, prob_h_1 = self.get_h_given_v(v_1)
                 # _, h_1 = get_h_given_v(v_1)
-                h_1 = h_0.copy()  # Because we just have one step of gibbs sampling
+                #h_1 = prob_h_1.copy()  # Because we just have one step of gibbs sampling
 
-                v_0_averaged = np.mean(v_0, axis=0)
-                h_0_averaged = np.mean(h_0, axis=0)
-                v_1_averaged = np.mean(v_1, axis=0)
-                h_1_averaged = np.mean(h_1, axis=0)
+                #v_0_averaged = np.sum(v_0, axis=0)
+                #h_0_averaged = np.sum(h_0, axis=0)
+                #v_1_averaged = np.sum(v_1, axis=0)
+                #h_1_averaged = np.sum(h_1, axis=0)
                 
-                self.update_params(v_0_averaged,h_0_averaged,v_1_averaged,h_1_averaged)
+                self.update_params(v_0,h_0,prob_v_1,prob_h_1)
                 
             # visualize once in a while when visible layer is input images
             
             if it % self.rf["period"] == 0 and self.is_bottom:
-                
+                print("I should plot")
                 viz_rf(weights=self.weight_vh[:,self.rf["ids"]].reshape((self.image_size[0],self.image_size[1],-1)), it=it, grid=self.rf["grid"])
 
             # print progress
@@ -118,8 +121,12 @@ class RestrictedBoltzmannMachine():
             if it % self.print_period == 0 :
 
                 print ("iteration=%7d recon_loss=%4.4f"%(it, np.linalg.norm(visible_trainset - visible_trainset)))
-        
-        return
+            _, h = self.get_h_given_v(visible_trainset)
+            _, v = self.get_v_given_h(h)
+            iteration_errors.append(np.sum((visible_trainset-v)**2)/n_samples)
+            print(iteration_errors)
+            
+        return iteration_errors
     
 
     def update_params(self, v_0, h_0, v_k, h_k, add_momentum=False, add_weight_decay=False):
@@ -138,18 +145,23 @@ class RestrictedBoltzmannMachine():
 
         # [TODO TASK 4.1] get the gradients from the arguments (replace the 0s below) and update the weight and bias parameters
         
-                
+        
         ###### Calculation of delta_weight_vh
-        prod_initial_v_h = np.outer(v_0, h_0)
-        prod_hat_v_h = np.outer(v_k, h_k)
+        prod_initial_v_h = np.dot(np.transpose(v_0), h_0)/self.batch_size
+        
+        prod_hat_v_h = np.dot(np.transpose(v_k), h_k)/self.batch_size
         
         current_delta_weight_vh = prod_initial_v_h - prod_hat_v_h 
         
         ###### Calculation of visible bias
-        current_delta_bias_v = v_0 - v_k  
+        v_0_avg = np.mean(v_0, axis=0)
+        v_k_avg = np.mean(v_k, axis=0)
+        current_delta_bias_v = v_0_avg - v_k_avg
 
         ###### Calculation of hidden bias
-        current_delta_bias_h = h_0 - h_k 
+        h_0_avg = np.mean(h_0, axis=0)
+        h_k_avg = np.mean(h_k, axis=0)
+        current_delta_bias_h = h_0_avg - h_k_avg
         
         if add_weight_decay:
             current_delta_weight_vh = self.learning_rate * current_delta_weight_vh
@@ -161,9 +173,9 @@ class RestrictedBoltzmannMachine():
             current_delta_bias_v += self.momentum * self.delta_bias_v
             current_delta_bias_h += self.momentum * self.delta_bias_h
 
-        self.delta_weight_vh = current_delta_weight_vh
-        self.delta_bias_v = current_delta_bias_v
-        self.delta_bias_h = current_delta_bias_h
+        self.delta_weight_vh = self.learning_rate*current_delta_weight_vh
+        self.delta_bias_v = self.learning_rate*current_delta_bias_v
+        self.delta_bias_h = self.learning_rate*current_delta_bias_h
         
         """
         # What was written in the code

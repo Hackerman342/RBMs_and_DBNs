@@ -19,10 +19,41 @@ if __name__ == "__main__":
                                      n_labels=10,
                                      batch_size=20
     )
+    rbm.rf["period"] = 1
+    err1 = rbm.cd1(visible_trainset=train_imgs, n_iterations=20)
+    '''
+    rbm2 = RestrictedBoltzmannMachine(ndim_visible=image_size[0]*image_size[1],
+                                     ndim_hidden=300,
+                                     is_bottom=True,
+                                     image_size=image_size,
+                                     is_top=False,
+                                     n_labels=10,
+                                     batch_size=20
+    )
     
-    rbm.cd1(visible_trainset=train_imgs, n_iterations=10)
-    rbm.cd1(visible_trainset=train_imgs, n_iterations=15)
-    rbm.cd1(visible_trainset=train_imgs, n_iterations=20)
+    err2 = rbm2.cd1(visible_trainset=train_imgs, n_iterations=20)
+    rbm3 = RestrictedBoltzmannMachine(ndim_visible=image_size[0]*image_size[1],
+                                     ndim_hidden=200,
+                                     is_bottom=True,
+                                     image_size=image_size,
+                                     is_top=False,
+                                     n_labels=10,
+                                     batch_size=20
+    )
+    
+    err3 = rbm3.cd1(visible_trainset=train_imgs, n_iterations=20)
+    plt.figure()
+    plt.plot(err1, label='500 nodes')
+    plt.plot(err2, label='300 nodes')
+    plt.plot(err3, label='200 nodes')
+    plt.xlabel("Iterations")
+    plt.ylabel("MSE")
+    plt.title("Error over epochs")
+    plt.legend()
+    plt.show()
+    '''
+    #rbm.cd1(visible_trainset=train_imgs, n_iterations=15)
+    #rbm.cd1(visible_trainset=train_imgs, n_iterations=20)
     
     ''' deep- belief net '''
 
