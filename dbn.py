@@ -139,36 +139,49 @@ class DeepBeliefNet():
             # [TODO TASK 4.2] use CD-1 to train all RBMs greedily
         
             print ("training vis--hid")
-            """ 
-            CD-1 training for vis--hid 
-            """
-            self.err_v1 = self.rbm_stack["vis--hid"].cd1(vis_trainset, n_iterations)
+             
+            # CD-1 training for vis--hid 
+            self.MSE_v1 = self.rbm_stack["vis--hid"].cd1(vis_trainset, n_iterations)
                      
-            #### Start provided
+            ####### Start provided
             self.savetofile_rbm(loc="trained_rbm",name="vis--hid")
-
             print ("training hid--pen")
             self.rbm_stack["vis--hid"].untwine_weights() 
-            ### End provided
+            ####### End provided
             
-            prob_h_0, h_0 = self.rbm_stack["vis--hid"].get_h_given_v_dir(vis_trainset)
-            prob_v_1, v_1 = prob_h_0, h_0 # To demonstrate what's occuring
+            # Get 1st hidden nodes from inputs (1st visible nodes)
+            prob_h_1, h_1 = self.rbm_stack["vis--hid"].get_h_given_v_dir(vis_trainset)
+            # 2nd visible nodes are 1st hidden modes
+            prob_v_2, v_2 = prob_h_1, h_1 # To demonstrate what's occuring
 
-            """ 
-            CD-1 training for hid--pen 
-            """
-            
-            self.err_v2 = self.rbm_stack["hid--pen"].cd1(v_1, n_iterations)
-            
-            
-            
+            # CD-1 training for hid--pen 
+            self.MSE_v2 = self.rbm_stack["hid--pen"].cd1(v_2, n_iterations)
+                       
+            ####### Start provided
             self.savetofile_rbm(loc="trained_rbm",name="hid--pen")            
-
             print ("training pen+lbl--top")
             self.rbm_stack["hid--pen"].untwine_weights()
-            """ 
-            CD-1 training for pen+lbl--top 
-            """
+            ####### End provided
+            
+            # Get 2nd hidden nodes from 2nd visible nodes
+            prob_h_2, h_2 = self.rbm_stack["hid--pen"].get_h_given_v_dir(v_2)
+            # 3rd visible nodes are 2nd hidden modes
+            prob_v_3, v_3 = prob_h_2, h_2 # To demonstrate what's occuring
+            
+            
+            #lbl = np.ones(true_lbl.shape)/10. # start the net by telling you know nothing about labels
+            
+            
+            
+            
+            v_3 = np.concatenate((lbl_trainset, v_3), axis = 1)
+            print(v_3)
+            print(v_3.shape)
+            
+            # CD-1 training for pen+lbl--top 
+            self.MSE_v3 = self.rbm_stack["pen+lbl--top"].cd1(v_3, n_iterations)
+
+            
             self.savetofile_rbm(loc="trained_rbm",name="pen+lbl--top")            
 
         return    

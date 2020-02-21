@@ -72,7 +72,8 @@ if __name__ == "__main__":
 
     print ("\nStarting a Deep Belief Net..")
     
-    dbn = DeepBeliefNet(sizes={"vis":image_size[0]*image_size[1], "hid":500, "pen":500, "top":2000, "lbl":10},
+    #dbn = DeepBeliefNet(sizes={"vis":image_size[0]*image_size[1], "hid":500, "pen":500, "top":2000, "lbl":10},
+    dbn = DeepBeliefNet(sizes={"vis":image_size[0]*image_size[1], "hid":200, "pen":200, "top":1000, "lbl":10},
                         image_size=image_size,
                         n_labels=10,
                         batch_size=10
@@ -81,12 +82,12 @@ if __name__ == "__main__":
     ''' greedy layer-wise training '''
 
     #dbn.train_greedylayerwise(vis_trainset=train_imgs, lbl_trainset=train_lbls, n_iterations=2000)
-    dbn.train_greedylayerwise(vis_trainset=train_imgs, lbl_trainset=train_lbls, n_iterations=20)
+    dbn.train_greedylayerwise(vis_trainset=train_imgs, lbl_trainset=train_lbls, n_iterations=2)
     '''
     # Plot MSE (like recon loss from first two DBN layers)
     plt.figure()
-    plt.plot(dbn.err_v1, label='First RBM')
-    plt.plot(dbn.err_v2, label='Second RBM')
+    plt.plot(dbn.MSE_v1, label='First RBM')
+    plt.plot(dbn.MSE_v2, label='Second RBM')
     plt.xlabel("Epochs [All minibatches]")
     plt.ylabel("MSE")
     plt.title("Error over epochs | 784-500-500 Architecture")
