@@ -98,8 +98,8 @@ class RestrictedBoltzmannMachine():
                 # note that inference methods returns both probabilities and activations (samples from probablities) and you may have to decide when to use what.
                 v_0 = visible_trainset_mini_batch
                 _, h_0 = self.get_h_given_v(v_0)
-                v_1, prob_v_1 = self.get_v_given_h(h_0)
-                _, prob_h_1 = self.get_h_given_v(v_1)
+                prob_v_1, v_1 = self.get_v_given_h(h_0)
+                prob_h_1, h_1 = self.get_h_given_v(v_1)
                 # _, h_1 = get_h_given_v(v_1)
                 #h_1 = prob_h_1.copy()  # Because we just have one step of gibbs sampling
 
