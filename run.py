@@ -1,18 +1,31 @@
 from util import *
 from rbm import RestrictedBoltzmannMachine 
 from dbn import DeepBeliefNet
+# for removing files automatically
+import os
+import glob
 
 if __name__ == "__main__":
-
+    # Automatically remove files so network trains
+    files_remove = True
+    if files_remove:
+        files = glob.glob('C:/Users/kwc57/Github_repos/RBMs_and_DBNs/trained_rbm/*')
+        for f in files:
+             os.remove(f)
+        files = glob.glob('C:/Users/kwc57/Github_repos/RBMs_and_DBNs/trained_dbn/*')
+        for f in files:
+             os.remove(f)
+         
     image_size = [28,28]
     train_imgs,train_lbls,test_imgs,test_lbls = read_mnist(dim=image_size, n_train=60000, n_test=10000)
 
     ''' restricted boltzmann machine '''
-    
+    '''
     print ("\nStarting a Restricted Boltzmann Machine..")
 
     rbm = RestrictedBoltzmannMachine(ndim_visible=image_size[0]*image_size[1],
-                                     ndim_hidden=500,
+                                     #ndim_hidden=500,
+                                     ndim_hidden=200,
                                      is_bottom=True,
                                      image_size=image_size,
                                      is_top=False,
@@ -21,7 +34,7 @@ if __name__ == "__main__":
     )
     rbm.rf["period"] = 1
     err1 = rbm.cd1(visible_trainset=train_imgs, n_iterations=20)
-    '''
+    
     rbm2 = RestrictedBoltzmannMachine(ndim_visible=image_size[0]*image_size[1],
                                      ndim_hidden=300,
                                      is_bottom=True,
@@ -67,8 +80,19 @@ if __name__ == "__main__":
     
     ''' greedy layer-wise training '''
 
-    dbn.train_greedylayerwise(vis_trainset=train_imgs, lbl_trainset=train_lbls, n_iterations=2000)
-
+    #dbn.train_greedylayerwise(vis_trainset=train_imgs, lbl_trainset=train_lbls, n_iterations=2000)
+    dbn.train_greedylayerwise(vis_trainset=train_imgs, lbl_trainset=train_lbls, n_iterations=20)
+    '''
+    # Plot MSE (like recon loss from first two DBN layers)
+    plt.figure()
+    plt.plot(dbn.err_v1, label='First RBM')
+    plt.plot(dbn.err_v2, label='Second RBM')
+    plt.xlabel("Epochs [All minibatches]")
+    plt.ylabel("MSE")
+    plt.title("Error over epochs | 784-500-500 Architecture")
+    plt.legend()
+    plt.show()
+    '''
     dbn.recognize(train_imgs, train_lbls)
     
     dbn.recognize(test_imgs, test_lbls)
