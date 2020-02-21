@@ -154,19 +154,17 @@ class RestrictedBoltzmannMachine():
         current_delta_weight_vh = prod_initial_v_h - prod_hat_v_h 
         
         ###### Calculation of visible bias
-        v_0_avg = np.mean(v_0, axis=0)
-        v_k_avg = np.mean(v_k, axis=0)
-        current_delta_bias_v = v_0_avg - v_k_avg
+        v_0_sum = np.sum(v_0, axis=0)
+        v_k_sum = np.sum(v_k, axis=0)
+        current_delta_bias_v = v_0_sum - v_k_sum
 
         ###### Calculation of hidden bias
-        h_0_avg = np.mean(h_0, axis=0)
-        h_k_avg = np.mean(h_k, axis=0)
-        current_delta_bias_h = h_0_avg - h_k_avg
+        h_0_sum = np.sum(h_0, axis=0)
+        h_k_sum = np.sum(h_k, axis=0)
+        current_delta_bias_h = h_0_sum - h_k_sum
         
         if add_weight_decay:
-            current_delta_weight_vh = self.learning_rate * current_delta_weight_vh
-            current_delta_bias_v = self.learning_rate * current_delta_bias_v
-            current_delta_bias_h = self.learning_rate * current_delta_bias_h
+            pass
             
         if add_momentum:
             current_delta_weight_vh += self.momentum * self.delta_weight_vh 
