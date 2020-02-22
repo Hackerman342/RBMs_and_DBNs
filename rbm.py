@@ -243,13 +243,18 @@ class RestrictedBoltzmannMachine():
             # [TODO TASK 4.1] compute probabilities and activations (samples from probabilities) of visible layer (replace the pass below). \
             # Note that this section can also be postponed until TASK 4.2, since in this task, stand-alone RBMs do not contain labels in visible layer.
             
-            ##### Temporary so it runs!!!
-            ##### Needs to be special with softmax 
+
             inside_term = self.bias_v + hidden_minibatch @ np.transpose(self.weight_vh)
-            prob_v_given_h = sigmoid(inside_term)
+            # Calculate probabilites with respective activation functions
+            prob_v_given_h_1 = sigmoid(inside_term[:, :-self.n_labels])
+            prob_v_given_h_2 = softmax(inside_term[:, -self.n_labels:])
+            # Sample to get v from respective probabilities + sampling functions
+            v1 = sample_binary(prob_v_given_h_1)
+            v2 = sample_categorical(prob_v_given_h_2)
+            # Concatenate binaries and labels 
+            prob_v_given_h = np.concatenate((prob_v_given_h_1, prob_v_given_h_2), axis = 1)
+            v = np.concatenate((v1, v2), axis = 1)
             
-            v = sample_binary(prob_v_given_h)
-            ######
             
         else:                        
             inside_term = self.bias_v + hidden_minibatch @ np.transpose(self.weight_vh)
@@ -329,7 +334,16 @@ class RestrictedBoltzmannMachine():
             # this case should never be executed : when the RBM is a part of a DBN and is at the top, it will have not have directed connections.
             # Appropriate code here is to raise an error (replace pass below)
             
-            pass
+            inside_term = self.bias_v + hidden_minibatch @ np.transpose(self.weight_vh)
+            # Calculate probabilites with respective activation functions
+            prob_v_given_h_1 = sigmoid(inside_term[:, :-self.n_labels])
+            prob_v_given_h_2 = softmax(inside_term[:, -self.n_labels:])
+            # Sample to get v from respective probabilities + sampling functions
+            v1 = sample_binary(prob_v_given_h_1)
+            v2 = sample_categorical(prob_v_given_h_2)
+            # Concatenate binaries and labels 
+            prob_v_given_h = np.concatenate((prob_v_given_h_1, prob_v_given_h_2), axis = 1)
+            v = np.concatenate((v1, v2), axis = 1)
             
         else:                        
             inside_term = self.bias_v + hidden_minibatch @ np.transpose(self.weight_h_to_v)

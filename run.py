@@ -73,7 +73,7 @@ if __name__ == "__main__":
     print ("\nStarting a Deep Belief Net..")
     
     #dbn = DeepBeliefNet(sizes={"vis":image_size[0]*image_size[1], "hid":500, "pen":500, "top":2000, "lbl":10},
-    dbn = DeepBeliefNet(sizes={"vis":image_size[0]*image_size[1], "hid":200, "pen":200, "top":1000, "lbl":10},
+    dbn = DeepBeliefNet(sizes={"vis":image_size[0]*image_size[1], "hid":200, "pen":200, "top":500, "lbl":10},
                         image_size=image_size,
                         n_labels=10,
                         batch_size=10
@@ -82,29 +82,30 @@ if __name__ == "__main__":
     ''' greedy layer-wise training '''
 
     #dbn.train_greedylayerwise(vis_trainset=train_imgs, lbl_trainset=train_lbls, n_iterations=2000)
-    dbn.train_greedylayerwise(vis_trainset=train_imgs, lbl_trainset=train_lbls, n_iterations=2)
-    '''
+    dbn.train_greedylayerwise(vis_trainset=train_imgs, lbl_trainset=train_lbls, n_iterations=3)
+    
     # Plot MSE (like recon loss from first two DBN layers)
     plt.figure()
-    plt.plot(dbn.MSE_v1, label='First RBM')
-    plt.plot(dbn.MSE_v2, label='Second RBM')
+    plt.plot(dbn.MSE_v1, label='vis--hid')
+    plt.plot(dbn.MSE_v2, label='hid--pen')
+    plt.plot(dbn.MSE_v3, label='pen+lbl--top')
     plt.xlabel("Epochs [All minibatches]")
     plt.ylabel("MSE")
-    plt.title("Error over epochs | 784-500-500 Architecture")
+    plt.title("Error over epochs | Full Architecture")
     plt.legend()
     plt.show()
-    '''
+    
     dbn.recognize(train_imgs, train_lbls)
     
     dbn.recognize(test_imgs, test_lbls)
-
+    '''
     for digit in range(10):
         digit_1hot = np.zeros(shape=(1,10))
         digit_1hot[0,digit] = 1
         dbn.generate(digit_1hot, name="rbms")
-
+    '''
     ''' fine-tune wake-sleep training '''
-
+    '''
     dbn.train_wakesleep_finetune(vis_trainset=train_imgs, lbl_trainset=train_lbls, n_iterations=2000)
 
     dbn.recognize(train_imgs, train_lbls)
@@ -115,3 +116,4 @@ if __name__ == "__main__":
         digit_1hot = np.zeros(shape=(1,10))
         digit_1hot[0,digit] = 1
         dbn.generate(digit_1hot, name="dbn")
+    '''
