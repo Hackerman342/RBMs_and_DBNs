@@ -120,12 +120,18 @@ class DeepBeliefNet():
         500‐unit layer can be initialized with either:
         1. a random sample (binomial distribution)
         2. a sample from biases
-        3. a sample drawn from the distribution obtained by propagating random image all the way form the input.
+        3. a sample drawn from the distribution obtained by propagating a random image all the way form the input.
         '''
         # Using 1. a random sample (binomial distribution)
-        v_3_img = np.random.randint(2, size = (n_sample,self.sizes['pen']))
+        #v_3_init = np.random.randint(2, size = (n_sample,self.sizes['pen']))
+        # Using 3. a sample drawn from the distribution obtained by propagating
+        # a random image all the way form the input.
+        v_1_init = np.random.randint(2, size = (n_sample,self.sizes['vis']))
+        _, v_2_init = self.rbm_stack["vis--hid"].get_h_given_v_dir(v_1_init)
+        _, v_3_init = self.rbm_stack["hid--pen"].get_h_given_v_dir(v_2_init)
+        
         # Concatenate binary samples to label
-        v_3 = np.concatenate((v_3_img,lbl),axis = 1)
+        v_3 = np.concatenate((v_3_init,lbl),axis = 1)
         
         for _ in range(self.n_gibbs_gener):
             # Ensure true label is fixed ("clamped") for every Gibb's sample
@@ -134,20 +140,18 @@ class DeepBeliefNet():
             prob_h_3, h_3 = self.rbm_stack["pen+lbl--top"].get_h_given_v(v_3)
             # Get v_3 back from h_3 (top hidden layer)
             prob_v_3, v_3 = self.rbm_stack["pen+lbl--top"].get_v_given_h(h_3)
-            #print("v_3: ", v_3)
             # Second hidden layer is top visible layer
             # Remove labels to go down to lower RBMs 
             h_2 = v_3[:, :-true_lbl.shape[1]]
             # Get v_2 from h_2
             prob_v_2, v_2 = self.rbm_stack["hid--pen"].get_v_given_h_dir(h_2)
-            #print("v_2: ", v_2)
 
             # First hidden layer is second visible layer
             h_1 = v_2
             # Get v_1 from h_1
             prob_v_1, v_1 = self.rbm_stack["vis--hid"].get_v_given_h_dir(h_1)
-            #print("v_1: ", v_1)
-            # Give v_1 to vis for animating
+
+            # Give v_1 to vis for the animation
             vis = v_1
             
             records.append( [ ax.imshow(vis.reshape(self.image_size), cmap="bwr", vmin=0, vmax=1, animated=True, interpolation=None) ] )
