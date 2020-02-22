@@ -7,15 +7,17 @@ import glob
 
 if __name__ == "__main__":
     # Automatically remove files so network trains
-    files_remove = True
+    files_remove = False
     if files_remove:
-        files = glob.glob('C:/Users/kwc57/Github_repos/RBMs_and_DBNs/trained_rbm/*')
-        for f in files:
-             os.remove(f)
+        print('Removing training files')
+        #files = glob.glob('C:/Users/kwc57/Github_repos/RBMs_and_DBNs/trained_rbm/*')
+        #for f in files:
+             #os.remove(f)
         files = glob.glob('C:/Users/kwc57/Github_repos/RBMs_and_DBNs/trained_dbn/*')
         for f in files:
              os.remove(f)
          
+    print('Reading mnist train and test data ')
     image_size = [28,28]
     train_imgs,train_lbls,test_imgs,test_lbls = read_mnist(dim=image_size, n_train=60000, n_test=10000)
 
@@ -73,16 +75,16 @@ if __name__ == "__main__":
     print ("\nStarting a Deep Belief Net..")
     
     #dbn = DeepBeliefNet(sizes={"vis":image_size[0]*image_size[1], "hid":500, "pen":500, "top":2000, "lbl":10},
-    dbn = DeepBeliefNet(sizes={"vis":image_size[0]*image_size[1], "hid":200, "pen":200, "top":500, "lbl":10},
+    dbn = DeepBeliefNet(sizes={"vis":image_size[0]*image_size[1], "hid":500, "pen":500, "top":2000, "lbl":10},
                         image_size=image_size,
                         n_labels=10,
-                        batch_size=10
+                        batch_size=20
     )
     
     ''' greedy layer-wise training '''
 
     #dbn.train_greedylayerwise(vis_trainset=train_imgs, lbl_trainset=train_lbls, n_iterations=2000)
-    dbn.train_greedylayerwise(vis_trainset=train_imgs, lbl_trainset=train_lbls, n_iterations=3)
+    dbn.train_greedylayerwise(vis_trainset=train_imgs, lbl_trainset=train_lbls, n_iterations=20)
     
     # Plot MSE (like recon loss from first two DBN layers)
     plt.figure()
@@ -95,8 +97,10 @@ if __name__ == "__main__":
     plt.legend()
     plt.show()
     
+    print('Checking recognition of training data')
     dbn.recognize(train_imgs, train_lbls)
     
+    print('Checking recognition of testing data')
     dbn.recognize(test_imgs, test_lbls)
     '''
     for digit in range(10):
