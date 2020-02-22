@@ -36,6 +36,8 @@ class DeepBeliefNet():
                                                         is_top=True, n_labels=n_labels, batch_size=batch_size)
         }
         
+        self.n_labels = n_labels
+        
         self.sizes = sizes
 
         self.image_size = image_size
@@ -59,12 +61,9 @@ class DeepBeliefNet():
         Args:
           true_imgs: visible data shaped (number of samples, size of visible layer)
           true_lbl: true labels shaped (number of samples, size of label layer). Used only for calculating accuracy, not driving the net
-        """        
-        n_samples = true_img.shape[0]
+        """                
         
-        vis = true_img # visible layer gets the image data
-        
-        lbl = np.ones(true_lbl.shape)/10. # start the net by telling you know nothing about labels        
+        lbl = np.ones(true_lbl.shape)/self.n_labels  # start the net by telling you know nothing about labels        
         
         # [TODO TASK 4.2] fix the image data in the visible layer and drive the network bottom to top. In the top RBM, run alternating Gibbs sampling \
         # and read out the labels (replace pass below and 'predicted_lbl' to your predicted labels).
@@ -74,23 +73,23 @@ class DeepBeliefNet():
         # Pass images through first layer 
         prob_h_1, h_1 = self.rbm_stack["vis--hid"].get_h_given_v_dir(true_img)
         # 2nd visible nodes are 1st hidden modes
-        prob_v_2, v_2 = prob_h_1, h_1
+        prob_v_2, v_2 = prob_h_1.copy(), h_1.copy()
         
         # Pass results from first layer through second layer
         prob_h_2, h_2 = self.rbm_stack["hid--pen"].get_h_given_v_dir(v_2)
         # 3rd visible nodes are 2nd hidden modes
-        prob_v_3, v_3 = prob_h_2, h_2 # To demonstrate what's occuring
+        prob_v_3, v_3 = prob_h_2.copy(), h_2.copy() # To demonstrate what's occuring
         
         # Concatenate labels to end of penultimate layer
-        v_3 = np.concatenate((v_3, lbl), axis = 1)
+        v_3_all_nodes = np.concatenate((v_3, lbl), axis = 1)
         
         # Gibb's sample final RBM
         for i in range(self.n_gibbs_recog):
-            _, h_3 = self.rbm_stack["pen+lbl--top"].get_h_given_v(v_3)
-            _, v_3 = self.rbm_stack["pen+lbl--top"].get_v_given_h(h_3)
+            _, h_3 = self.rbm_stack["pen+lbl--top"].get_h_given_v(v_3_all_nodes)
+            _, v_3_all_nodes = self.rbm_stack["pen+lbl--top"].get_v_given_h(h_3)
                     
         # Predicted labels are last few columns of h_1 
-        predicted_lbl = v_3[:, -true_lbl.shape[1]:]
+        predicted_lbl = v_3_all_nodes[:, -true_lbl.shape[1]:]
             
         print ("accuracy = %.2f%%"%(100.*np.mean(np.argmax(predicted_lbl,axis=1)==np.argmax(true_lbl,axis=1))))
         
@@ -200,10 +199,11 @@ class DeepBeliefNet():
             
             # Get 1st hidden nodes from inputs (1st visible nodes)
             prob_h_1, h_1 = self.rbm_stack["vis--hid"].get_h_given_v_dir(vis_trainset)
-            # 2nd visible nodes are 1st hidden modes
-            prob_v_2, v_2 = prob_h_1, h_1
             
             ####################### Second RBM #######################
+
+            # 2nd visible nodes are 1st hidden modes
+            prob_v_2, v_2 = prob_h_1.copy(), h_1.copy()
             
             print ("training hid--pen")
 
@@ -216,11 +216,12 @@ class DeepBeliefNet():
             
             # Get 2nd hidden nodes from 2nd visible nodes
             prob_h_2, h_2 = self.rbm_stack["hid--pen"].get_h_given_v_dir(v_2)
-            # 3rd visible nodes are 2nd hidden modes
-            prob_v_3, v_3 = prob_h_2, h_2 # To demonstrate what's occuring            
+                       
             
             ####################### Third RBM #######################
-
+            # 3rd visible nodes are 2nd hidden modes
+            prob_v_3, v_3 = prob_h_2.copy(), h_2.copy() # To demonstrate what's occuring 
+            
             print ("training pen+lbl--top")
             
             # Concatenate labels to end of penultimate layer

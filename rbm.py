@@ -292,8 +292,6 @@ class RestrictedBoltzmannMachine():
         
         assert self.weight_v_to_h is not None
 
-        n_samples = visible_minibatch.shape[0]
-
         # [TODO TASK 4.2] perform same computation as the function 'get_h_given_v' but with directed connections (replace the zeros below)
         inside_term = self.bias_h + visible_minibatch @ self.weight_v_to_h
         prob_h_given_v = sigmoid(inside_term)
@@ -319,7 +317,6 @@ class RestrictedBoltzmannMachine():
         
         assert self.weight_h_to_v is not None
         
-        n_samples = hidden_minibatch.shape[0]
         
         if self.is_top:
 
