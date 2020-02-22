@@ -86,8 +86,8 @@ class DeepBeliefNet():
         
         # Gibb's sample final RBM
         for i in range(self.n_gibbs_recog):
-            _, h_4 = self.rbm_stack["pen+lbl--top"].get_h_given_v(v_3)
-            _, v_3 = self.rbm_stack["pen+lbl--top"].get_v_given_h(h_4)
+            _, h_3 = self.rbm_stack["pen+lbl--top"].get_h_given_v(v_3)
+            _, v_3 = self.rbm_stack["pen+lbl--top"].get_v_given_h(h_3)
                     
         # Predicted labels are last few columns of h_1 
         predicted_lbl = v_3[:, -true_lbl.shape[1]:]
@@ -116,10 +116,39 @@ class DeepBeliefNet():
 
         # [TODO TASK 4.2] fix the label in the label layer and run alternating Gibbs sampling in the top RBM. From the top RBM, drive the network \ 
         # top to the bottom visible layer (replace 'vis' from random to your generated visible layer).
-            
+        '''
+        500‐unit layer can be initialized with either:
+        1. a random sample (binomial distribution)
+        2. a sample from biases
+        3. a sample drawn from the distribution obtained by propagating random image all the way form the input.
+        '''
+        # Using 1. a random sample (binomial distribution)
+        v_3_img = np.random.randint(2, size = (n_sample,self.sizes['pen']))
+        # Concatenate binary samples to label
+        v_3 = np.concatenate((v_3_img,lbl),axis = 1)
+        
         for _ in range(self.n_gibbs_gener):
+            # Ensure true label is fixed ("clamped") for every Gibb's sample
+            v_3[:, -true_lbl.shape[1]:] = true_lbl
+            # Get top hidden layer from true label and v_3
+            prob_h_3, h_3 = self.rbm_stack["pen+lbl--top"].get_h_given_v(v_3)
+            # Get v_3 back from h_3 (top hidden layer)
+            prob_v_3, v_3 = self.rbm_stack["pen+lbl--top"].get_v_given_h(h_3)
+            #print("v_3: ", v_3)
+            # Second hidden layer is top visible layer
+            # Remove labels to go down to lower RBMs 
+            h_2 = v_3[:, :-true_lbl.shape[1]]
+            # Get v_2 from h_2
+            prob_v_2, v_2 = self.rbm_stack["hid--pen"].get_v_given_h_dir(h_2)
+            #print("v_2: ", v_2)
 
-            vis = np.random.rand(n_sample,self.sizes["vis"])
+            # First hidden layer is second visible layer
+            h_1 = v_2
+            # Get v_1 from h_1
+            prob_v_1, v_1 = self.rbm_stack["vis--hid"].get_v_given_h_dir(h_1)
+            #print("v_1: ", v_1)
+            # Give v_1 to vis for animating
+            vis = v_1
             
             records.append( [ ax.imshow(vis.reshape(self.image_size), cmap="bwr", vmin=0, vmax=1, animated=True, interpolation=None) ] )
         anim = stitch_video(fig,records).save("%s.generate%d.mp4"%(name,np.argmax(true_lbl)))            
