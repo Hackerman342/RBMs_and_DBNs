@@ -86,6 +86,7 @@ if __name__ == "__main__":
 
     #dbn.train_greedylayerwise(vis_trainset=train_imgs, lbl_trainset=train_lbls, n_iterations=2000)
     dbn.train_greedylayerwise(vis_trainset=train_imgs, lbl_trainset=train_lbls, n_iterations=20)
+    
     '''
     # Plot MSE (like recon loss from first two DBN layers)
     # Only works when training
@@ -99,22 +100,23 @@ if __name__ == "__main__":
     plt.legend()
     plt.show()
     '''
-    '''
+    
     ############### Recognition ###############
     print('Checking recognition of training data')
     dbn.recognize(train_imgs, train_lbls)
     
     print('Checking recognition of testing data')
     dbn.recognize(test_imgs, test_lbls)
-    '''
+    
     ############### Generation ###############
+    '''
     for digit in range(10):
         print('Generating digit: %i' %digit)
 
         digit_1hot = np.zeros(shape=(1,10))
         digit_1hot[0,digit] = 1
         dbn.generate(digit_1hot, name="rbms")
-    
+    '''
     ''' fine-tune wake-sleep training '''
     '''
     dbn.train_wakesleep_finetune(vis_trainset=train_imgs, lbl_trainset=train_lbls, n_iterations=2000)

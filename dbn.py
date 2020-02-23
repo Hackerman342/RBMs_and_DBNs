@@ -54,6 +54,7 @@ class DeepBeliefNet():
         
         return
 
+
     def recognize(self,true_img,true_lbl):
 
         """Recognize/Classify the data into label categories and calculate the accuracy
@@ -63,7 +64,8 @@ class DeepBeliefNet():
           true_lbl: true labels shaped (number of samples, size of label layer). Used only for calculating accuracy, not driving the net
         """                
         
-        lbl = np.ones(true_lbl.shape)/self.n_labels  # start the net by telling you know nothing about labels        
+        lbl = np.ones(true_lbl.shape)/self.n_labels  # start the net by telling you know nothing about labels  
+        #lbl = sample_categorical(lbl)
         
         # [TODO TASK 4.2] fix the image data in the visible layer and drive the network bottom to top. In the top RBM, run alternating Gibbs sampling \
         # and read out the labels (replace pass below and 'predicted_lbl' to your predicted labels).
@@ -89,11 +91,13 @@ class DeepBeliefNet():
             _, v_3_all_nodes = self.rbm_stack["pen+lbl--top"].get_v_given_h(h_3)
                     
         # Predicted labels are last few columns of h_1 
-        predicted_lbl = v_3_all_nodes[:, -true_lbl.shape[1]:]
+        predicted_lbl = v_3_all_nodes[:, -self.n_labels:] # self.n_labels == true_lbl.shape[1]
             
         print ("accuracy = %.2f%%"%(100.*np.mean(np.argmax(predicted_lbl,axis=1)==np.argmax(true_lbl,axis=1))))
         
         return
+    
+    
 
     def generate(self,true_lbl,name):
         
@@ -110,8 +114,6 @@ class DeepBeliefNet():
         fig,ax = plt.subplots(1,1,figsize=(3,3))
         plt.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
         ax.set_xticks([]); ax.set_yticks([])
-
-        lbl = true_lbl
 
         # [TODO TASK 4.2] fix the label in the label layer and run alternating Gibbs sampling in the top RBM. From the top RBM, drive the network \ 
         # top to the bottom visible layer (replace 'vis' from random to your generated visible layer).
@@ -130,7 +132,7 @@ class DeepBeliefNet():
         _, v_3_init = self.rbm_stack["hid--pen"].get_h_given_v_dir(v_2_init)
         
         # Concatenate binary samples to label
-        v_3 = np.concatenate((v_3_init,lbl),axis = 1)
+        v_3 = np.concatenate((v_3_init,true_lbl),axis = 1)
         
         for _ in range(self.n_gibbs_gener):
             # Ensure true label is fixed ("clamped") for every Gibb's sample
@@ -153,7 +155,7 @@ class DeepBeliefNet():
             # Give v_1 to vis for the animation
             vis = v_1
             
-            records.append( [ ax.imshow(vis.reshape(self.image_size), cmap="bwr", vmin=0, vmax=1, animated=True, interpolation=None) ] )
+            records.append([ ax.imshow(vis.reshape(self.image_size), cmap="bwr", vmin=0, vmax=1, animated=True, interpolation=None) ] )
         anim = stitch_video(fig,records).save("%s.generate%d.mp4"%(name,np.argmax(true_lbl)))            
             
         return
@@ -260,12 +262,50 @@ class DeepBeliefNet():
             self.n_samples = vis_trainset.shape[0]
 
             for it in range(n_iterations):            
-                                                
+                print("Wake-phase")
+                
                 # [TODO TASK 4.3] wake-phase : drive the network bottom to top using fixing the visible and label data.
-
+                
+                ####################### Wake-phase #######################
+                # The unlabelled RBMs are already trained  
+                
+                # First RBN
+                _, h_1 = self.rbm_stack["vis--hid"].get_h_given_v_dir(vis_trainset)
+                _, v_1_pred = self.rbm_stack["vis--hid"].get_v_given_h_dir(h_1)
+                
+                self.rbm_stack["vis--hid"].update_generate_params(vis_trainset,h_1,v_1_pred)
+                
+                # Second RBN
+                v_2 = h_1.copy()
+                _, h_2 = self.rbm_stack["hid--pen"].get_h_given_v_dir(v_2)
+                _, v_2_pred = self.rbm_stack["hid--pen"].get_v_given_h_dir(h_2)
+                
+                self.rbm_stack["hid--pen"].update_generate_params(v_2,h_2,v_2_pred)
+               
+                
                 # [TODO TASK 4.3] alternating Gibbs sampling in the top RBM for k='n_gibbs_wakesleep' steps, also store neccessary information for learning this RBM.
 
+                v_3 = h_2.copy() # To demonstrate what's occuring
+        
+                # Concatenate labels to end of penultimate layer
+                v_3_all_nodes = np.concatenate((v_3, lbl_trainset), axis = 1)
+                
+                
+                # Do we need to train??? 
+                
+                # Gibb's sample final RBM
+                for i in range(self.n_gibbs_wakesleep):
+                    _, h_3 = self.rbm_stack["pen+lbl--top"].get_h_given_v(v_3_all_nodes)
+                    _, v_3_all_nodes = self.rbm_stack["pen+lbl--top"].get_v_given_h(h_3)
+        
+                        
+
+                
                 # [TODO TASK 4.3] sleep phase : from the activities in the top RBM, drive the network top to bottom.
+
+                v_3 = v_3_all_nodes[:-self.n_labels].copy()
+                
+
 
                 # [TODO TASK 4.3] compute predictions : compute generative predictions from wake-phase activations, and recognize predictions from sleep-phase activations.
                 # Note that these predictions will not alter the network activations, we use them only to learn the directed connections.
@@ -274,7 +314,7 @@ class DeepBeliefNet():
 
                 # [TODO TASK 4.3] update parameters of top rbm : here you will only use 'update_params' method from rbm class.
 
-                # [TODO TASK 4.3] update generative parameters : here you will only use 'update_recognize_params' method from rbm class.
+                # [TODO TASK 4.3] update recognize parameters : here you will only use 'update_recognize_params' method from rbm class.
 
                 if it % self.print_period == 0 : print ("iteration=%7d"%it)
                         
