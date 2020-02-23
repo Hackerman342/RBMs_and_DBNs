@@ -331,7 +331,7 @@ class RestrictedBoltzmannMachine():
             # this case should never be executed : when the RBM is a part of a DBN and is at the top, it will have not have directed connections.
             # Appropriate code here is to raise an error (replace pass below)
             
-            inside_term = self.bias_v + hidden_minibatch @ self.weight_h_to_v
+            inside_term = self.bias_v + hidden_minibatch @ np.transpose(self.weight_vh) #self.weight_h_to_v
             # Calculate probabilites with respective activation functions
             prob_v_given_h_1 = sigmoid(inside_term[:, :-self.n_labels])
             prob_v_given_h_2 = softmax(inside_term[:, -self.n_labels:])

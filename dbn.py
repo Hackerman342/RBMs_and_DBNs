@@ -290,22 +290,33 @@ class DeepBeliefNet():
                 # Concatenate labels to end of penultimate layer
                 v_3_all_nodes = np.concatenate((v_3, lbl_trainset), axis = 1)
                 
-                
+                v_3_all_nodes_gibbs = v_3_all_nodes.copy()
                 # Do we need to train??? 
                 
                 # Gibb's sample final RBM
-                for i in range(self.n_gibbs_wakesleep):
-                    _, h_3 = self.rbm_stack["pen+lbl--top"].get_h_given_v(v_3_all_nodes)
-                    _, v_3_all_nodes = self.rbm_stack["pen+lbl--top"].get_v_given_h(h_3)
+                for i in range(self.n_gibbs_wakesleep):# TODO: I would keep the labels clamped
+                    _, h_3 = self.rbm_stack["pen+lbl--top"].get_h_given_v(v_3_all_nodes_gibbs)
+                    v_3_all_nodes_gibbs_prob, v_3_all_nodes_gibbs = self.rbm_stack["pen+lbl--top"].get_v_given_h(h_3)
+            
+                h_3_pred_prob, h_3_pred = self.rbm_stack["pen+lbl--top"].get_h_given_v(v_3_all_nodes_gibbs)
         
-                        
+                self.rbm_stack["pen+lbl--top"].update_params(v_3_all_nodes, h_3, v_3_all_nodes_gibbs_prob, h_3_pred_prob)
 
                 
                 # [TODO TASK 4.3] sleep phase : from the activities in the top RBM, drive the network top to bottom.
 
                 v_3 = v_3_all_nodes[:-self.n_labels].copy()
                 
-
+                h_2_sleep = v_3.copy()
+                _, v_2_sleep = self.rbm_stack["hid--pen"].get_v_given_h_dir(h_2_sleep)
+                _, h_2_sleep_pred = self.rbm_stack["hid--pen"].get_h_given_v_dir(v_2_sleep)
+                self.rbm_stack["hid--pen"].update_recognize_params(h_2_sleep, v_2_sleep, h_2_sleep_pred)
+                
+                
+                h_1_sleep = v_2_sleep.copy()
+                _, v_2_sleep = self.rbm_stack["vis--hid"].get_v_given_h_dir(h_1_sleep)
+                _, h_2_sleep_pred = self.rbm_stack["vis--hid"].get_h_given_v_dir(v_1_sleep)
+                self.rbm_stack["vis--hid"].update_recognize_params(h_1_sleep, v_1_sleep, h_1_sleep_pred)
 
                 # [TODO TASK 4.3] compute predictions : compute generative predictions from wake-phase activations, and recognize predictions from sleep-phase activations.
                 # Note that these predictions will not alter the network activations, we use them only to learn the directed connections.
