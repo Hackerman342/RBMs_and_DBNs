@@ -360,8 +360,8 @@ class RestrictedBoltzmannMachine():
         
         reconstructed_diff = inps-preds
         
-        self.delta_weight_h_to_v += self.learning_rate * np.transpose(trgs) @ reconstructed_diff
-        self.delta_bias_v += self.learning_rate * np.mean(reconstructed_diff, axis=1)
+        self.delta_weight_h_to_v = self.learning_rate * np.transpose(trgs) @ reconstructed_diff # Before was +=
+        self.delta_bias_v = self.learning_rate * np.mean(reconstructed_diff, axis=1) # Before was +=
         
         self.weight_h_to_v += self.delta_weight_h_to_v
         self.bias_v += self.delta_bias_v 

@@ -237,6 +237,8 @@ class DeepBeliefNet():
 
         return    
 
+
+
     def train_wakesleep_finetune(self, vis_trainset, lbl_trainset, n_iterations):
 
         """
@@ -262,10 +264,7 @@ class DeepBeliefNet():
             self.n_samples = vis_trainset.shape[0]
 
             for it in range(n_iterations):            
-                print("Wake-phase")
-                
-                # [TODO TASK 4.3] wake-phase : drive the network bottom to top using fixing the visible and label data.
-                
+                                
                 ####################### Wake-phase #######################
                 # The unlabelled RBMs are already trained  
                 
@@ -283,49 +282,35 @@ class DeepBeliefNet():
                 self.rbm_stack["hid--pen"].update_generate_params(v_2,h_2,v_2_pred)
                
                 
-                # [TODO TASK 4.3] alternating Gibbs sampling in the top RBM for k='n_gibbs_wakesleep' steps, also store neccessary information for learning this RBM.
-
+                ####################### Undirected RBM training #######################
                 v_3 = h_2.copy() # To demonstrate what's occuring
         
-                # Concatenate labels to end of penultimate layer
                 v_3_all_nodes = np.concatenate((v_3, lbl_trainset), axis = 1)
                 
-                v_3_all_nodes_gibbs = v_3_all_nodes.copy()
-                # Do we need to train??? 
-                
-                # Gibb's sample final RBM
-                for i in range(self.n_gibbs_wakesleep):# TODO: I would keep the labels clamped
-                    _, h_3 = self.rbm_stack["pen+lbl--top"].get_h_given_v(v_3_all_nodes_gibbs)
-                    v_3_all_nodes_gibbs_prob, v_3_all_nodes_gibbs = self.rbm_stack["pen+lbl--top"].get_v_given_h(h_3)
+                self.rbm_stack["pen+lbl--top"].cd1(v_3_all_nodes, n_iterations=1)
             
-                h_3_pred_prob, h_3_pred = self.rbm_stack["pen+lbl--top"].get_h_given_v(v_3_all_nodes_gibbs)
-        
-                self.rbm_stack["pen+lbl--top"].update_params(v_3_all_nodes, h_3, v_3_all_nodes_gibbs_prob, h_3_pred_prob)
+                # Gibb's sample final RBM
+                for i in range(self.n_gibbs_wakesleep):  
+                    _, h_3 = self.rbm_stack["pen+lbl--top"].get_h_given_v(v_3_all_nodes)
+                    _, v_3_all_nodes = self.rbm_stack["pen+lbl--top"].get_v_given_h(h_3)
+                    v_3_all_nodes[:, -self.n_labels:] = lbl_trainset  # We want to keep the labels clamped
+            
+                    
 
+                ####################### Sleep-phase #######################
+                v_3_sleep = v_3_all_nodes[:-self.n_labels].copy()
                 
-                # [TODO TASK 4.3] sleep phase : from the activities in the top RBM, drive the network top to bottom.
-
-                v_3 = v_3_all_nodes[:-self.n_labels].copy()
-                
-                h_2_sleep = v_3.copy()
+                h_2_sleep = v_3_sleep.copy()
                 _, v_2_sleep = self.rbm_stack["hid--pen"].get_v_given_h_dir(h_2_sleep)
                 _, h_2_sleep_pred = self.rbm_stack["hid--pen"].get_h_given_v_dir(v_2_sleep)
                 self.rbm_stack["hid--pen"].update_recognize_params(h_2_sleep, v_2_sleep, h_2_sleep_pred)
                 
                 
                 h_1_sleep = v_2_sleep.copy()
-                _, v_2_sleep = self.rbm_stack["vis--hid"].get_v_given_h_dir(h_1_sleep)
-                _, h_2_sleep_pred = self.rbm_stack["vis--hid"].get_h_given_v_dir(v_1_sleep)
+                _, v_1_sleep = self.rbm_stack["vis--hid"].get_v_given_h_dir(h_1_sleep)
+                _, h_1_sleep_pred = self.rbm_stack["vis--hid"].get_h_given_v_dir(v_1_sleep)
                 self.rbm_stack["vis--hid"].update_recognize_params(h_1_sleep, v_1_sleep, h_1_sleep_pred)
 
-                # [TODO TASK 4.3] compute predictions : compute generative predictions from wake-phase activations, and recognize predictions from sleep-phase activations.
-                # Note that these predictions will not alter the network activations, we use them only to learn the directed connections.
-                
-                # [TODO TASK 4.3] update generative parameters : here you will only use 'update_generate_params' method from rbm class.
-
-                # [TODO TASK 4.3] update parameters of top rbm : here you will only use 'update_params' method from rbm class.
-
-                # [TODO TASK 4.3] update recognize parameters : here you will only use 'update_recognize_params' method from rbm class.
 
                 if it % self.print_period == 0 : print ("iteration=%7d"%it)
                         
