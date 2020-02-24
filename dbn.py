@@ -287,16 +287,30 @@ class DeepBeliefNet():
         
                 v_3_all_nodes = np.concatenate((v_3, lbl_trainset), axis = 1)
                 
+                ''' # ONE OPTION
                 self.rbm_stack["pen+lbl--top"].cd1(v_3_all_nodes, n_iterations=1)
             
                 # Gibb's sample final RBM
-                for i in range(self.n_gibbs_wakesleep):  
+                for _ in range(self.n_gibbs_wakesleep):  
                     _, h_3 = self.rbm_stack["pen+lbl--top"].get_h_given_v(v_3_all_nodes)
                     _, v_3_all_nodes = self.rbm_stack["pen+lbl--top"].get_v_given_h(h_3)
                     v_3_all_nodes[:, -self.n_labels:] = lbl_trainset  # We want to keep the labels clamped
-            
-                    
+                '''
+                
+                # SECOND OPTION
+                v_3_init_gibbs = v_3_all_nodes.copy()
+                _, h_3_init = self.rbm_stack["pen+lbl--top"].get_h_given_v(v_3_init_gibbs)
+                
+                h_3 = h_3_init.copy()
+                
+                for _ in range(self.n_gibbs_wakesleep):  
+                    prob_v_3_all_nodes, v_3_all_nodes = self.rbm_stack["pen+lbl--top"].get_v_given_h(h_3)
+                    v_3_all_nodes[:, -self.n_labels:] = lbl_trainset  # We want to keep the labels clamped
+                    prob_h3, h_3 = self.rbm_stack["pen+lbl--top"].get_h_given_v(v_3_all_nodes)
+                
+                self.rbm_stack["pen+lbl--top"].update_params(v_3_init_gibbs, h_3_init, prob_v_3_all_nodes, prob_h3)   
 
+                
                 ####################### Sleep-phase #######################
                 v_3_sleep = v_3_all_nodes[:-self.n_labels].copy()
                 

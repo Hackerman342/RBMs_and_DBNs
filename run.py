@@ -100,14 +100,14 @@ if __name__ == "__main__":
     plt.legend()
     plt.show()
     '''
-    
+    '''
     ############### Recognition ###############
     print('Checking recognition of training data')
     dbn.recognize(train_imgs, train_lbls)
     
     print('Checking recognition of testing data')
     dbn.recognize(test_imgs, test_lbls)
-    
+    '''
     ############### Generation ###############
     '''
     for digit in range(10):
@@ -118,13 +118,13 @@ if __name__ == "__main__":
         dbn.generate(digit_1hot, name="rbms")
     '''
     ''' fine-tune wake-sleep training '''
-    '''
+    
     dbn.train_wakesleep_finetune(vis_trainset=train_imgs, lbl_trainset=train_lbls, n_iterations=2000)
 
     dbn.recognize(train_imgs, train_lbls)
     
     dbn.recognize(test_imgs, test_lbls)
-    
+    '''
     for digit in range(10):
         digit_1hot = np.zeros(shape=(1,10))
         digit_1hot[0,digit] = 1
