@@ -25,7 +25,6 @@ if __name__ == "__main__":
     ''' restricted boltzmann machine '''
     '''
     print ("\nStarting a Restricted Boltzmann Machine..")
-
     rbm = RestrictedBoltzmannMachine(ndim_visible=image_size[0]*image_size[1],
                                      #ndim_hidden=500,
                                      ndim_hidden=200,
@@ -112,7 +111,6 @@ if __name__ == "__main__":
     '''
     for digit in range(10):
         print('Generating digit: %i' %digit)
-
         digit_1hot = np.zeros(shape=(1,10))
         digit_1hot[0,digit] = 1
         dbn.generate(digit_1hot, name="rbms")
