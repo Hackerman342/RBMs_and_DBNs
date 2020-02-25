@@ -261,74 +261,85 @@ class DeepBeliefNet():
             
         except IOError :            
 
-            self.n_samples = vis_trainset.shape[0]
-
+            n_samples = vis_trainset.shape[0]
+            n_mini_batches = n_samples//self.batch_size
             for it in range(n_iterations):       
                 print("Iteration " + str(it) + ": ")
                                 
                 ####################### Wake-phase #######################
                 # The unlabelled RBMs are already trained  
                 
-                # First RBN
-                _, h_1 = self.rbm_stack["vis--hid"].get_h_given_v_dir(vis_trainset)
-                _, v_1_pred = self.rbm_stack["vis--hid"].get_v_given_h_dir(h_1)
+                idx_samples = np.arange(n_samples)
+                np.random.shuffle(idx_samples)
                 
-                self.rbm_stack["vis--hid"].update_generate_params(vis_trainset,h_1,v_1_pred)
-                
-                # Second RBN
-                v_2 = h_1.copy()
-                _, h_2 = self.rbm_stack["hid--pen"].get_h_given_v_dir(v_2)
-                _, v_2_pred = self.rbm_stack["hid--pen"].get_v_given_h_dir(h_2)
-                
-                self.rbm_stack["hid--pen"].update_generate_params(v_2,h_2,v_2_pred)
-               
-                
-                ####################### Undirected RBM training #######################
-                v_3 = h_2.copy() # To demonstrate what's occuring
-        
-                v_3_all_nodes = np.concatenate((v_3, lbl_trainset), axis = 1)
-                
-                ''' # ONE OPTION
-                self.rbm_stack["pen+lbl--top"].cd1(v_3_all_nodes, n_iterations=1)
+                for i_mini_batch in range(n_mini_batches):
+                    
+                    low_limit_idx_mini_batch = i_mini_batch*self.batch_size
+                    up_limit_idx_mini_batch = (i_mini_batch+1)*self.batch_size
+                    idx_mini_batch = idx_samples[low_limit_idx_mini_batch:up_limit_idx_mini_batch]
+                    visible_trainset_mini_batch = vis_trainset[idx_mini_batch]
+                    visible_lbl_mini_batch = lbl_trainset[idx_mini_batch]
+                    
+                    # First RBN
+                    _, h_1 = self.rbm_stack["vis--hid"].get_h_given_v_dir(visible_trainset_mini_batch)
+                    prob_v_1_pred, v_1_pred = self.rbm_stack["vis--hid"].get_v_given_h_dir(h_1)
+                    
+                    self.rbm_stack["vis--hid"].update_generate_params(h_1, visible_trainset_mini_batch, prob_v_1_pred)
+                    
+                    # Second RBN
+                    v_2 = h_1.copy()
+                    _, h_2 = self.rbm_stack["hid--pen"].get_h_given_v_dir(v_2)
+                    prob_v_2_pred, v_2_pred = self.rbm_stack["hid--pen"].get_v_given_h_dir(h_2)
+                    
+                    self.rbm_stack["hid--pen"].update_generate_params(h_2, v_2, prob_v_2_pred)
+                   
+                    
+                    ####################### Undirected RBM training #######################
+                    v_3 = h_2.copy() # To demonstrate what's occuring
             
-                # Gibb's sample final RBM
-                for _ in range(self.n_gibbs_wakesleep):  
-                    _, h_3 = self.rbm_stack["pen+lbl--top"].get_h_given_v(v_3_all_nodes)
-                    _, v_3_all_nodes = self.rbm_stack["pen+lbl--top"].get_v_given_h(h_3)
-                    v_3_all_nodes[:, -self.n_labels:] = lbl_trainset  # We want to keep the labels clamped
-                '''
+                    v_3_all_nodes = np.concatenate((v_3, visible_lbl_mini_batch), axis = 1)
+                    
+                    ''' # ONE OPTION
+                    self.rbm_stack["pen+lbl--top"].cd1(v_3_all_nodes, n_iterations=1)
                 
-                # SECOND OPTION
-                v_3_init_gibbs = v_3_all_nodes.copy()
-                _, h_3_init = self.rbm_stack["pen+lbl--top"].get_h_given_v(v_3_init_gibbs)
-                
-                h_3 = h_3_init.copy()
-                
-                for _ in range(self.n_gibbs_wakesleep):  
-                    prob_v_3_all_nodes, v_3_all_nodes = self.rbm_stack["pen+lbl--top"].get_v_given_h(h_3)
-                    v_3_all_nodes[:, -self.n_labels:] = lbl_trainset  # We want to keep the labels clamped
-                    prob_h3, h_3 = self.rbm_stack["pen+lbl--top"].get_h_given_v(v_3_all_nodes)
-                
-                self.rbm_stack["pen+lbl--top"].update_params(v_3_init_gibbs, h_3_init, prob_v_3_all_nodes, prob_h3)   
-
-                
-                ####################### Sleep-phase #######################
-                v_3_sleep = v_3_all_nodes[:, :-self.n_labels].copy()
-                
-                h_2_sleep = v_3_sleep.copy()
-                _, v_2_sleep = self.rbm_stack["hid--pen"].get_v_given_h_dir(h_2_sleep)
-                _, h_2_sleep_pred = self.rbm_stack["hid--pen"].get_h_given_v_dir(v_2_sleep)
-                self.rbm_stack["hid--pen"].update_recognize_params(h_2_sleep, v_2_sleep, h_2_sleep_pred)
-                
-                
-                h_1_sleep = v_2_sleep.copy()
-                _, v_1_sleep = self.rbm_stack["vis--hid"].get_v_given_h_dir(h_1_sleep)
-                _, h_1_sleep_pred = self.rbm_stack["vis--hid"].get_h_given_v_dir(v_1_sleep)
-                self.rbm_stack["vis--hid"].update_recognize_params(h_1_sleep, v_1_sleep, h_1_sleep_pred)
-
-
+                    # Gibb's sample final RBM
+                    for _ in range(self.n_gibbs_wakesleep):  
+                        _, h_3 = self.rbm_stack["pen+lbl--top"].get_h_given_v(v_3_all_nodes)
+                        _, v_3_all_nodes = self.rbm_stack["pen+lbl--top"].get_v_given_h(h_3)
+                        v_3_all_nodes[:, -self.n_labels:] = lbl_trainset  # We want to keep the labels clamped
+                    '''
+                    
+                    # SECOND OPTION
+                    v_3_init_gibbs = v_3_all_nodes.copy()
+                    _, h_3_init = self.rbm_stack["pen+lbl--top"].get_h_given_v(v_3_init_gibbs)
+                    
+                    h_3 = h_3_init.copy()
+                    
+                    for _ in range(self.n_gibbs_wakesleep):  
+                        prob_v_3_all_nodes, v_3_all_nodes = self.rbm_stack["pen+lbl--top"].get_v_given_h(h_3)
+                        v_3_all_nodes[:, -self.n_labels:] = visible_lbl_mini_batch  # We want to keep the labels clamped
+                        prob_h3, h_3 = self.rbm_stack["pen+lbl--top"].get_h_given_v(v_3_all_nodes)
+                    
+                    self.rbm_stack["pen+lbl--top"].update_params(v_3_init_gibbs, h_3_init, prob_v_3_all_nodes, prob_h3)   
+    
+                    
+                    ####################### Sleep-phase #######################
+                    v_3_sleep = v_3_all_nodes[:, :-self.n_labels].copy()
+                    
+                    h_2_sleep = v_3_sleep.copy()
+                    _, v_2_sleep = self.rbm_stack["hid--pen"].get_v_given_h_dir(h_2_sleep)
+                    prob_h_2_sleep_pred, h_2_sleep_pred = self.rbm_stack["hid--pen"].get_h_given_v_dir(v_2_sleep)
+                    self.rbm_stack["hid--pen"].update_recognize_params(v_2_sleep, h_2_sleep, prob_h_2_sleep_pred)
+                    
+                    
+                    h_1_sleep = v_2_sleep.copy()
+                    _, v_1_sleep = self.rbm_stack["vis--hid"].get_v_given_h_dir(h_1_sleep)
+                    prob_h_1_sleep_pred, h_1_sleep_pred = self.rbm_stack["vis--hid"].get_h_given_v_dir(v_1_sleep)
+                    self.rbm_stack["vis--hid"].update_recognize_params(v_1_sleep, h_1_sleep, prob_h_1_sleep_pred)
+    
+    
                 if it % self.print_period == 0 : print ("iteration=%7d"%it)
-                        
+                            
             self.savetofile_dbn(loc="trained_dbn",name="vis--hid")
             self.savetofile_dbn(loc="trained_dbn",name="hid--pen")
             self.savetofile_rbm(loc="trained_dbn",name="pen+lbl--top")            
