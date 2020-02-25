@@ -263,7 +263,8 @@ class DeepBeliefNet():
 
             self.n_samples = vis_trainset.shape[0]
 
-            for it in range(n_iterations):            
+            for it in range(n_iterations):       
+                print("Iteration " + str(it) + ": ")
                                 
                 ####################### Wake-phase #######################
                 # The unlabelled RBMs are already trained  
@@ -312,7 +313,7 @@ class DeepBeliefNet():
 
                 
                 ####################### Sleep-phase #######################
-                v_3_sleep = v_3_all_nodes[:-self.n_labels].copy()
+                v_3_sleep = v_3_all_nodes[:, :-self.n_labels].copy()
                 
                 h_2_sleep = v_3_sleep.copy()
                 _, v_2_sleep = self.rbm_stack["hid--pen"].get_v_given_h_dir(h_2_sleep)

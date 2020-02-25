@@ -130,3 +130,19 @@ if __name__ == "__main__":
         digit_1hot[0,digit] = 1
         dbn.generate(digit_1hot, name="dbn")
     '''
+    
+    simpler_dbn = DeepBeliefNet(sizes={"vis":image_size[0]*image_size[1], "pen":500, "top":2000, "lbl":10},
+                        image_size=image_size,
+                        n_labels=10,
+                        batch_size=20
+    )
+    
+    ''' greedy layer-wise training '''
+
+    #dbn.train_greedylayerwise(vis_trainset=train_imgs, lbl_trainset=train_lbls, n_iterations=2000)
+    dbn.train_greedylayerwise(vis_trainset=train_imgs, lbl_trainset=train_lbls, n_iterations=20)
+    
+    
+    
+    
+    

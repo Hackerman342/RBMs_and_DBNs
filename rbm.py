@@ -361,7 +361,7 @@ class RestrictedBoltzmannMachine():
         reconstructed_diff = inps-preds
         
         self.delta_weight_h_to_v = self.learning_rate * np.transpose(trgs) @ reconstructed_diff # Before was +=
-        self.delta_bias_v = self.learning_rate * np.mean(reconstructed_diff, axis=1) # Before was +=
+        self.delta_bias_v = self.learning_rate * np.mean(reconstructed_diff, axis=0) # Before was +=
         
         self.weight_h_to_v += self.delta_weight_h_to_v
         self.bias_v += self.delta_bias_v 
@@ -381,8 +381,8 @@ class RestrictedBoltzmannMachine():
 
         # [TODO TASK 4.3] find the gradients from the arguments (replace the 0s below) and update the weight and bias parameters.
         reconstructed_diff = inps-preds
-        self.delta_weight_v_to_h += self.learning_rate * trgs @ np.transpose(reconstructed_diff)
-        self.delta_bias_h += self.learning_rate * np.mean(reconstructed_diff, axis=1)
+        self.delta_weight_v_to_h = self.learning_rate * trgs @ np.transpose(reconstructed_diff)
+        self.delta_bias_h = self.learning_rate * np.mean(reconstructed_diff, axis=0)
 
         self.weight_v_to_h += self.delta_weight_v_to_h
         self.bias_h += self.delta_bias_h
